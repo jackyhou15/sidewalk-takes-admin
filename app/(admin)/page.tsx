@@ -137,7 +137,7 @@ export default async function Dashboard() {
           </div>
           <p className="insight">
             {media.length - rated
-              ? `${media.length - rated} takes are still waiting for their first reaction.`
+              ? `${media.length - rated} ${media.length - rated === 1 ? "take is" : "takes are"} still waiting for a first reaction.`
               : "Every take has heard from the crowd."}
           </p>
         </section>
