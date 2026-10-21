@@ -18,7 +18,10 @@ begin
   allowed := false;
   begin update public.profiles set is_superadmin=true where id=auth.uid(); exception when insufficient_privilege then allowed := true; end;
   if not allowed then raise exception 'Ordinary member could change the admin flag'; end if;
-  update public.profiles set first_name=first_name where id=auth.uid();
+  insert into public.profiles(id,first_name,last_name,avatar_path,updated_at)
+    select id,first_name,last_name,avatar_path,updated_at from public.profiles where id=auth.uid()
+    on conflict(id) do update set id=excluded.id,first_name=excluded.first_name,
+      last_name=excluded.last_name,avatar_path=excluded.avatar_path,updated_at=excluded.updated_at;
   get diagnostics n=row_count;
   if n <> 1 then raise exception 'Ordinary profile editing stopped working'; end if;
   update public.generations set caption=caption;
