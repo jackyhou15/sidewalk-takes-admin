@@ -58,7 +58,7 @@ export default async function ImageDetail({
         title={item ? String(item.label) : "Upload an image"}
         description={
           item
-            ? "Update the title, accessible description and saved prompt. Referenced files are protected from accidental deletion."
+            ? "Update the title, accessible description and saved prompt. Deleting an image clears its photo references while keeping the user profile, caption and ratings."
             : "Upload a new image to private Storage, then save its metadata."
         }
       />

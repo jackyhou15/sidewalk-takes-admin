@@ -11,6 +11,7 @@ export default async function Images({
     bucket?: string;
     deleted?: string;
     cleanup?: string;
+    page?: string;
   }>;
 }) {
   const { supabase } = await requireAdmin();
@@ -19,13 +20,23 @@ export default async function Images({
     searchParams,
   ]);
   const q = (search.q ?? "").toLowerCase();
-  const rows = all
+  const filtered = all
     .filter(
       (r) =>
         (!q || JSON.stringify(r).toLowerCase().includes(q)) &&
         (!search.bucket || r.bucket === search.bucket),
     )
     .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  const page = Math.max(
+    1,
+    Math.min(
+      Math.ceil(filtered.length / 24) || 1,
+      Number.parseInt(search.page ?? "1") || 1,
+    ),
+  );
+  const rows = filtered.slice((page - 1) * 24, page * 24);
+  const pageUrl = (next: number) =>
+    `?q=${encodeURIComponent(q)}&bucket=${encodeURIComponent(search.bucket ?? "")}&page=${next}`;
   const previews = await Promise.all(
     rows.map(async (r) => {
       const { data } = await supabase.storage
@@ -73,8 +84,9 @@ export default async function Images({
           <button className="button secondary">Filter</button>
         </form>
         <p className="small muted">
-          {rows.length} images · image files are stored in Storage, not in
-          relational rows.
+          {filtered.length} images · page {page} of{" "}
+          {Math.ceil(filtered.length / 24) || 1} · image files are stored in
+          Storage, not in relational rows.
         </p>
         <div className="image-grid">
           {rows.map((r, i) => (
@@ -97,6 +109,18 @@ export default async function Images({
             No matching images. Upload the first image above.
           </p>
         )}
+        <div className="pagination">
+          {page > 1 && (
+            <Link className="button secondary" href={pageUrl(page - 1)}>
+              ← Previous
+            </Link>
+          )}
+          {page * 24 < filtered.length && (
+            <Link className="button secondary" href={pageUrl(page + 1)}>
+              Next →
+            </Link>
+          )}
+        </div>
       </section>
     </main>
   );

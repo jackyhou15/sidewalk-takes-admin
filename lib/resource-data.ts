@@ -4,15 +4,21 @@ import { type Row } from "@/lib/resources";
 export async function resourceRows(table: string) {
   const { supabase } = await requireAdmin();
   const rows: Row[] = [];
+  const columns: Record<string, string> = {
+    llm_responses:
+      "id,request_id,user_id,model_key,status,duration_ms,input_tokens,output_tokens,total_tokens,error,created_at",
+    ai_generation_examples: "id,title,scene,style,caption,enabled,created_at",
+    images: "id,bucket,path,label,alt_text,created_by,created_at",
+  };
   for (let page = 0; ; page++) {
     const { data, error } = await supabase
       .from(table)
-      .select("*")
+      .select(columns[table] ?? "*")
       .order("id")
       .range(page * 500, page * 500 + 499);
     if (error)
       throw Error("This section could not be loaded. Refresh and try again.");
-    rows.push(...(data as Row[]));
+    rows.push(...(data as unknown as Row[]));
     if (data.length < 500) return rows;
   }
 }

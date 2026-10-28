@@ -131,7 +131,7 @@ export function ImageDelete({ id, inUse }: { id: string; inUse: boolean }) {
       <summary>Delete image</summary>
       <p>
         {inUse
-          ? "This file is referenced by a profile or take. Change that reference first."
+          ? "Deleting this image also removes its photo reference from linked profiles or takes. User profiles, captions and votes are kept. The file and its metadata are permanently deleted."
           : "Permanently deletes the file and its metadata. This cannot be undone."}
       </p>
       <form action={action}>
@@ -143,7 +143,7 @@ export function ImageDelete({ id, inUse }: { id: string; inUse: boolean }) {
             pattern="DELETE"
             required
             autoComplete="off"
-            disabled={pending || inUse}
+            disabled={pending}
           />
         </label>
         {state.error && (
@@ -151,7 +151,7 @@ export function ImageDelete({ id, inUse }: { id: string; inUse: boolean }) {
             {state.error}
           </p>
         )}
-        <button className="button danger" disabled={pending || inUse}>
+        <button className="button danger" disabled={pending}>
           Permanently delete image
         </button>
       </form>

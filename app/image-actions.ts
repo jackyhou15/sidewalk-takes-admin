@@ -98,26 +98,14 @@ export async function deleteImage(
   const id = String(form.get("id") ?? "");
   if (!uuid.test(id) || form.get("confirmation") !== "DELETE")
     return { error: "Type DELETE to confirm." };
-  const { data: item, error } = await supabase
-    .from("images")
-    .select("bucket,path")
-    .eq("id", id)
-    .single();
-  if (error || !item) return { error: "The image could not be loaded." };
-  const { data: removed, error: deleteError } = await supabase
-    .from("images")
-    .delete()
-    .eq("id", id)
-    .select("id");
-  if (deleteError)
-    return {
-      error:
-        deleteError.code === "23503"
-          ? "This image is used by a profile or take. Change that reference before deleting the image."
-          : "The image could not be deleted.",
-    };
-  if (removed?.length !== 1) return { error: "The image no longer exists." };
-  const cleanup = await supabase.storage.from(item.bucket).remove([item.path]);
+  const { data: removed, error } = await supabase.rpc("admin_delete_image", {
+    p_id: id,
+  });
+  if (error || !removed)
+    return { error: "The image could not be deleted. Refresh and try again." };
+  const cleanup = await supabase.storage
+    .from(removed.bucket)
+    .remove([removed.path]);
   revalidatePath("/", "layout");
   redirect(`/images?deleted=1${cleanup.error ? "&cleanup=warning" : ""}`);
 }

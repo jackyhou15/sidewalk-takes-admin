@@ -3,7 +3,7 @@ begin;
 select set_config('request.jwt.claims','{"sub":"c35e01e7-f315-40be-8b8b-5dc1e4cb3c17","app_metadata":{"provider":"google"}}',true);
 set local role authenticated;
 do $$
-declare p uuid; m uuid; t uuid; e uuid; d uuid; w uuid; i uuid; r uuid; resp uuid; config jsonb; affected integer; mix jsonb;
+declare p uuid; m uuid; t uuid; e uuid; d uuid; w uuid; i uuid; r uuid; resp uuid; config jsonb; affected integer; mix jsonb; image_used uuid; gen_used uuid;
 begin
  if not public.is_superadmin() then raise exception 'Owner admin check failed'; end if;
  if (select count(*) from public.admin_profiles())<2 then raise exception 'User directory failed'; end if;
@@ -43,6 +43,16 @@ begin
   delete from public.llm_models where id='70000000-0000-4000-8000-000000000002';
   raise exception 'FAIL: deleting a referenced model was allowed';
  exception when foreign_key_violation then null; end;
+ insert into public.images(bucket,path,label,created_by) values('caption-images',auth.uid()::text||'/rollback-in-use.svg','Rollback referenced image',auth.uid()) returning id into image_used;
+ insert into public.generations(created_by,scene,style,caption,prompt,model,image_path) values(auth.uid(),'A coffee cart outside Columbia.','dry','The cart has tenure.','Rollback prompt','rollback-model',auth.uid()::text||'/rollback-in-use.svg') returning id into gen_used;
+ insert into public.votes(generation_id,user_id,value) values(gen_used,auth.uid(),1);
+ perform public.admin_delete_image(image_used);
+ if not exists(select 1 from public.generations where id=gen_used and image_path is null) or not exists(select 1 from public.votes where generation_id=gen_used) then raise exception 'Image detachment lost the take or votes';end if;
+ insert into public.images(bucket,path,label,created_by) values('avatars',auth.uid()::text||'/rollback-photo.png','Rollback profile photo',auth.uid()) returning id into image_used;
+ update public.profiles set avatar_path=auth.uid()::text||'/rollback-photo.png' where id=auth.uid();
+ perform public.admin_delete_image(image_used);
+ if not exists(select 1 from public.profiles where id=auth.uid() and avatar_path is null and is_superadmin) then raise exception 'Photo cleanup damaged the profile or admin flag';end if;
+ begin perform public.admin_delete_image(gen_random_uuid());raise exception 'FAIL: unknown image deletion';exception when no_data_found then null;end;
  delete from public.images where id=i; get diagnostics affected=row_count;if affected<>1 then raise exception 'Image delete failed';end if;
  delete from public.ai_generation_examples where id=e;get diagnostics affected=row_count;if affected<>1 then raise exception 'Example delete failed';end if;
  delete from public.terms where id=t;get diagnostics affected=row_count;if affected<>1 then raise exception 'Term delete failed';end if;
@@ -68,6 +78,7 @@ do $$ declare t text; n integer; begin
   insert into public.terms(term,definition) values('Member forbidden','Forbidden');
   raise exception 'FAIL: member could create term';
  exception when insufficient_privilege then null;end;
+ begin perform public.admin_delete_image(gen_random_uuid());raise exception 'FAIL: member image deletion';exception when insufficient_privilege then null;end;
  begin
   perform public.update_prompt_mix('[]'::jsonb);
   raise exception 'FAIL: member could update mix';
@@ -84,5 +95,21 @@ do $$ begin
  begin perform public.generation_context('dry');raise exception 'FAIL: anonymous config access';exception when insufficient_privilege then null;end;
 end $$;
 reset role;
+do $$ declare image_id uuid; begin
+ if exists(select 1 from pg_tables where schemaname='public' and not rowsecurity) then raise exception 'Public table without RLS';end if;
+ if exists(select 1 from storage.buckets where id in ('avatars','admin-images') and public) then raise exception 'Private images became public';end if;
+ insert into public.allowed_signup_domains(domain) values('week7-check.example');
+ insert into auth.users(id,email) values(gen_random_uuid(),'allowed@week7-check.example');
+ begin
+  insert into auth.users(id,email) values(gen_random_uuid(),'blocked@other-week7.example');
+  raise exception 'FAIL: unknown signup passed allowlist';
+ exception when insufficient_privilege then null;end;
+ insert into public.whitelisted_emails(email) values('exception@other-week7.example');
+ insert into auth.users(id,email) values(gen_random_uuid(),'exception@other-week7.example');
+ select i.id into image_id from public.images i where (i.bucket='avatars' and exists(select 1 from public.profiles p where p.avatar_path=i.path)) or (i.bucket='caption-images' and exists(select 1 from public.generations g where g.image_path=i.path)) limit 1;
+ if image_id is not null then
+  begin delete from public.images where id=image_id;raise exception 'FAIL: referenced image deleted';exception when foreign_key_violation then null;end;
+ end if;
+end $$;
 rollback;
-select 'PASS: admin CRUD, reviewer access, mix/model safety, member isolation, anonymous denial; no test data persisted.' as verification;
+select 'PASS: admin CRUD, reviewer access, mix/model safety, member isolation, anonymous denial, signup allowlists and image-reference protection; no test data persisted.' as verification;

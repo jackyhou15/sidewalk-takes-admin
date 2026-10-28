@@ -59,7 +59,9 @@ export default async function ResourceDetail({
         title={
           isNew
             ? `New ${spec.singular.toLowerCase()}`
-            : (slug === "requests" || slug === "responses" ? spec.singular : String(item?.[spec.label] ?? spec.singular))
+            : slug === "requests" || slug === "responses"
+              ? spec.singular
+              : String(item?.[spec.label] ?? spec.singular)
         }
         description={spec.description}
       />
@@ -94,7 +96,7 @@ export default async function ResourceDetail({
               <div key={key}>
                 <dt>{labelFor(key)}</dt>
                 <dd>
-                  {refs[String(val)] ? (
+                  {key !== "id" && refs[String(val)] ? (
                     <Link className="text-link" href={refs[String(val)].href}>
                       {refs[String(val)].label} ↗
                     </Link>
@@ -107,7 +109,16 @@ export default async function ResourceDetail({
                       "No"
                     )
                   ) : (
-                    <pre>{key.endsWith("_at") ? new Date(String(val)).toLocaleString("en-US",{timeZone:"America/New_York",timeZoneName:"short"}) : key === "duration_ms" ? `${(Number(val)/1000).toFixed(2)} seconds` : String(val)}</pre>
+                    <pre>
+                      {key.endsWith("_at")
+                        ? new Date(String(val)).toLocaleString("en-US", {
+                            timeZone: "America/New_York",
+                            timeZoneName: "short",
+                          })
+                        : key === "duration_ms"
+                          ? `${(Number(val) / 1000).toFixed(2)} seconds`
+                          : String(val)}
+                    </pre>
                   )}
                 </dd>
               </div>
@@ -133,7 +144,11 @@ export default async function ResourceDetail({
       )}
       {item && spec.mode === "crud" && (
         <p className="small muted">
-          Record ID: {id} · Created {String(item.created_at)}
+          Record ID: {id} · Created{" "}
+          {new Date(String(item.created_at)).toLocaleString("en-US", {
+            timeZone: "America/New_York",
+            timeZoneName: "short",
+          })}
         </p>
       )}
     </main>
