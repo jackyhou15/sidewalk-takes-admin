@@ -18,6 +18,7 @@ export function MediaEditor({ item }: { item?: Media }) {
   const [prompt, setPrompt] = useState(item?.prompt ?? "");
   const [model, setModel] = useState(item?.model ?? "gemini-3.5-flash-lite");
   const [imageSvg, setImageSvg] = useState("");
+  const [requestId, setRequestId] = useState("");
   const [imageDescription, setImageDescription] = useState(
     item?.image_description ?? "",
   );
@@ -32,6 +33,7 @@ export function MediaEditor({ item }: { item?: Media }) {
         setGenerationError(result.error);
         return;
       }
+      setRequestId(result.draft.requestId);
       setCaption(result.draft.caption);
       setPrompt(result.draft.prompt);
       setModel(result.draft.model);
@@ -46,6 +48,7 @@ export function MediaEditor({ item }: { item?: Media }) {
     <form action={action} className="editor-form">
       <input type="hidden" name="id" value={item?.id ?? ""} />
       <input type="hidden" name="imageSvg" value={imageSvg} />
+      <input type="hidden" name="requestId" value={requestId} />
       <fieldset disabled={pending}>
         <legend>01 / Scene & tone</legend>
         <label>

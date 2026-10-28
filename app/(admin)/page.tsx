@@ -44,6 +44,15 @@ export default async function Dashboard() {
           </Link>
         }
       />
+      <Link href="/observability" className="observability-banner">
+        <div>
+          <strong>New: Generation observability</strong>
+          <p>
+            Trace requests, inspect LLM responses and tune the prompt chain mix.
+          </p>
+        </div>
+        <span>Open generation health ↗</span>
+      </Link>
       <section className="metrics" aria-label="Summary statistics">
         {[
           [

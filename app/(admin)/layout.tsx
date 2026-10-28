@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminNav } from "@/app/components/admin-nav";
 import { requireAdmin } from "@/lib/auth";
 import { signOut } from "@/app/actions";
 export default async function AdminLayout({
@@ -14,20 +15,7 @@ export default async function AdminLayout({
           Sidewalk Takes<span>.</span>
         </Link>
         <span className="workspace-label">THE ADMIN WORKSPACE</span>
-        <nav aria-label="Admin navigation">
-          <Link href="/">
-            <span aria-hidden="true">◈</span> Overview
-          </Link>
-          <Link href="/media">
-            <span aria-hidden="true">▧</span> AI media
-          </Link>
-          <Link href="/users">
-            <span aria-hidden="true">◎</span> Users & profiles
-          </Link>
-          <Link href="/ratings">
-            <span aria-hidden="true">↕</span> Ratings
-          </Link>
-        </nav>
+        <AdminNav />
         <div className="sidebar-bottom">
           <a
             href="https://hello-world-nextjs-vercel.vercel.app/"
